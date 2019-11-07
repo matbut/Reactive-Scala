@@ -1,5 +1,6 @@
 package EShop.lab2
 
+import EShop.lab2.Checkout._
 import akka.actor.{Actor, ActorRef, Cancellable, Props}
 import akka.event.Logging
 
@@ -30,6 +31,7 @@ object Checkout {
 }
 
 class Checkout extends Actor {
+  import context._
 
   private val scheduler = context.system.scheduler
   private val log       = Logging(context.system, this)
@@ -37,16 +39,30 @@ class Checkout extends Actor {
   val checkoutTimerDuration = 1 seconds
   val paymentTimerDuration  = 1 seconds
 
-  def receive: Receive = ???
+  private def scheduleCheckoutTimer: Cancellable = scheduler.scheduleOnce(checkoutTimerDuration, self, ExpireCheckout)
+  private def schedulePaymentTimer: Cancellable  = scheduler.scheduleOnce(checkoutTimerDuration, self, ExpirePayment)
 
-  def selectingDelivery(timer: Cancellable): Receive = ???
+  def receive: Receive = {
+    case StartCheckout => become(selectingDelivery(scheduleCheckoutTimer))
+  }
 
-  def selectingPaymentMethod(timer: Cancellable): Receive = ???
+  def selectingDelivery(timer: Cancellable): Receive = {
+    case CancelCheckout | ExpireCheckout => become(cancelled)
+    case SelectDeliveryMethod(method)    => become(selectingPaymentMethod(timer))
+  }
 
-  def processingPayment(timer: Cancellable): Receive = ???
+  def selectingPaymentMethod(timer: Cancellable): Receive = {
+    case CancelCheckout | ExpireCheckout => become(cancelled)
+    case SelectPayment(payment)          => become(processingPayment(schedulePaymentTimer))
+  }
 
-  def cancelled: Receive = ???
+  def processingPayment(timer: Cancellable): Receive = {
+    case CancelCheckout | ExpirePayment => become(cancelled)
+    case ReceivePayment                 => become(closed)
+  }
 
-  def closed: Receive = ???
+  def cancelled: Receive = PartialFunction.empty
+
+  def closed: Receive = PartialFunction.empty
 
 }
