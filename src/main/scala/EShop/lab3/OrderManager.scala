@@ -4,7 +4,7 @@ import EShop.lab2.CartActor.CheckoutStarted
 import EShop.lab2.{CartActor, Checkout}
 import EShop.lab3.OrderManager._
 import EShop.lab3.Payment.DoPayment
-import akka.actor.{Actor, ActorRef}
+import akka.actor.{Actor, ActorRef, Props}
 import akka.event.LoggingReceive
 
 object OrderManager {
@@ -33,6 +33,8 @@ object OrderManager {
   case class InCheckoutDataWithSender(checkoutRef: ActorRef, sender: ActorRef) extends Data
   case class InPaymentData(paymentRef: ActorRef)                               extends Data
   case class InPaymentDataWithSender(paymentRef: ActorRef, sender: ActorRef)   extends Data
+
+  def props = Props(new OrderManager)
 }
 
 class OrderManager extends Actor {
