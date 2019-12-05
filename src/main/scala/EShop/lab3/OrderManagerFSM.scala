@@ -34,7 +34,7 @@ class OrderManagerFSM extends FSM[State, Data] {
   }
 
   when(InCheckout) {
-    case Event(CheckoutStarted(checkoutRef), CartDataWithSender(_, senderRef)) =>
+    case Event(CheckoutStarted(checkoutRef, _), CartDataWithSender(_, senderRef)) =>
       senderRef ! Done
       stay.using(InCheckoutData(checkoutRef))
     case Event(SelectDeliveryAndPaymentMethod(delivery, payment), InCheckoutData(checkoutActorRef)) =>

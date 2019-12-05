@@ -26,7 +26,7 @@ object Checkout {
   case object Expire                              extends Command
 
   sealed trait Event
-  case object CheckOutClosed                        extends Event
+  case object CheckoutClosed                        extends Event
   case class PaymentStarted(payment: ActorRef)      extends Event
   case object CheckoutStarted                       extends Event
   case object CheckoutCancelled                     extends Event

@@ -36,13 +36,13 @@ class PersistentCheckoutTest
   }
 
   it should "be in cancelled state after cancel message received in selectingDelivery State" in {
-    val id            = ???
+    val id            = generatePersistenceId
     val checkoutActor = checkoutActorWithResponseOnStateChange(system)(cartActor, id)
 
     checkoutActor ! StartCheckout
     expectMsg(selectingDeliveryMsg)
-    //restart actor
-    val checkoutActorAfterRestart: ActorRef = ???
+    system.stop(checkoutActor) // stop actor
+    val checkoutActorAfterRestart: ActorRef = checkoutActorWithResponseOnStateChange(system)(cartActor, id)
     checkoutActorAfterRestart ! CancelCheckout
     expectMsg(cancelledMsg)
   }
@@ -52,7 +52,7 @@ class PersistentCheckoutTest
       override val timerDuration: FiniteDuration = 1.seconds
 
       override def cancelled: Receive = {
-        case any => sender ! cancelledMsg
+        case _ => sender ! cancelledMsg
       }
     }))
 
@@ -63,27 +63,27 @@ class PersistentCheckoutTest
   }
 
   it should "be in selectingPayment state after delivery method selected" in {
-    val id            = ???
+    val id            = generatePersistenceId
     val checkoutActor = checkoutActorWithResponseOnStateChange(system)(cartActor, id)
 
     checkoutActor ! StartCheckout
     expectMsg(selectingDeliveryMsg)
-    //restart actor
-    val checkoutActorAfterRestart: ActorRef = ???
+    system.stop(checkoutActor) // stop actor
+    val checkoutActorAfterRestart: ActorRef = checkoutActorWithResponseOnStateChange(system)(cartActor, id)
     checkoutActorAfterRestart ! SelectDeliveryMethod(deliveryMethod)
     expectMsg(selectingPaymentMethodMsg)
   }
 
   it should "be in cancelled state after cancel message received in selectingPayment State" in {
-    val id            = ???
+    val id            = generatePersistenceId
     val checkoutActor = checkoutActorWithResponseOnStateChange(system)(cartActor, id)
 
     checkoutActor ! StartCheckout
     expectMsg(selectingDeliveryMsg)
     checkoutActor ! SelectDeliveryMethod(deliveryMethod)
     expectMsg(selectingPaymentMethodMsg)
-    //restart actor
-    val checkoutActorAfterRestart: ActorRef = ???
+    system.stop(checkoutActor) // stop actor
+    val checkoutActorAfterRestart: ActorRef = checkoutActorWithResponseOnStateChange(system)(cartActor, id)
     checkoutActorAfterRestart ! CancelCheckout
     expectMsg(cancelledMsg)
   }
@@ -93,7 +93,7 @@ class PersistentCheckoutTest
       override val timerDuration: FiniteDuration = 1.seconds
 
       override def cancelled: Receive = {
-        case any => sender ! cancelledMsg
+        case _ => sender ! cancelledMsg
       }
     }))
 
@@ -105,15 +105,15 @@ class PersistentCheckoutTest
   }
 
   it should "be in processingPayment state after payment selected" in {
-    val id            = ???
+    val id            = generatePersistenceId
     val checkoutActor = checkoutActorWithResponseOnStateChange(system)(cartActor, id)
 
     checkoutActor ! StartCheckout
     expectMsg(selectingDeliveryMsg)
     checkoutActor ! SelectDeliveryMethod(deliveryMethod)
     expectMsg(selectingPaymentMethodMsg)
-    //restart actor
-    val checkoutActorAfterRestart: ActorRef = ???
+    system.stop(checkoutActor) // stop actor
+    val checkoutActorAfterRestart: ActorRef = checkoutActorWithResponseOnStateChange(system)(cartActor, id)
     checkoutActorAfterRestart ! SelectPayment(paymentMethod)
     fishForMessage() {
       case m: String if m == processingPaymentMsg => true
@@ -122,7 +122,7 @@ class PersistentCheckoutTest
   }
 
   it should "be in cancelled state after cancel message received in processingPayment State" in {
-    val id            = ???
+    val id            = generatePersistenceId
     val checkoutActor = checkoutActorWithResponseOnStateChange(system)(cartActor, id)
 
     checkoutActor ! StartCheckout
@@ -134,8 +134,8 @@ class PersistentCheckoutTest
       case m: String if m == processingPaymentMsg => true
       case _: PaymentStarted                      => false
     }
-    //restart actor
-    val checkoutActorAfterRestart: ActorRef = ???
+    system.stop(checkoutActor) // stop actor
+    val checkoutActorAfterRestart: ActorRef = checkoutActorWithResponseOnStateChange(system)(cartActor, id)
     checkoutActorAfterRestart ! CancelCheckout
     expectMsg(cancelledMsg)
   }
@@ -145,7 +145,7 @@ class PersistentCheckoutTest
       override val timerDuration: FiniteDuration = 1.seconds
 
       override def cancelled: Receive = {
-        case any => sender ! cancelledMsg
+        case _ => sender ! cancelledMsg
       }
     }))
 
@@ -161,7 +161,7 @@ class PersistentCheckoutTest
   }
 
   it should "be in closed state after payment completed" in {
-    val id            = ???
+    val id            = generatePersistenceId
     val checkoutActor = checkoutActorWithResponseOnStateChange(system)(cartActor, id)
 
     checkoutActor ! StartCheckout
@@ -173,14 +173,14 @@ class PersistentCheckoutTest
       case m: String if m == processingPaymentMsg => true
       case _: PaymentStarted                      => false
     }
-    //restart actor
-    val checkoutActorAfterRestart: ActorRef = ???
+    system.stop(checkoutActor) // stop actor
+    val checkoutActorAfterRestart: ActorRef = checkoutActorWithResponseOnStateChange(system)(cartActor, id)
     checkoutActorAfterRestart ! ReceivePayment
     expectMsg(closedMsg)
   }
 
   it should "not change state after cancel msg in completed state" in {
-    val id            = ???
+    val id            = generatePersistenceId
     val checkoutActor = checkoutActorWithResponseOnStateChange(system)(cartActor, id)
 
     checkoutActor ! StartCheckout
@@ -194,8 +194,8 @@ class PersistentCheckoutTest
     }
     checkoutActor ! ReceivePayment
     expectMsg(closedMsg)
-    //restart actor
-    val checkoutActorAfterRestart: ActorRef = ???
+    system.stop(checkoutActor) // stop actor
+    val checkoutActorAfterRestart: ActorRef = checkoutActorWithResponseOnStateChange(system)(cartActor, id)
     checkoutActorAfterRestart ! CancelCheckout
     expectNoMessage()
   }
@@ -218,7 +218,7 @@ object PersistentCheckoutTest {
   )(cartActor: ActorRef, persistenceId: String = generatePersistenceId) =
     system.actorOf(Props(new PersistentCheckout(cartActor, persistenceId) {
 
-      override def receive() = {
+      override def receive(): Receive = {
         val result = super.receive
         sender ! emptyMsg
         result
@@ -253,6 +253,5 @@ object PersistentCheckoutTest {
         sender ! closedMsg
         result
       }
-
     }))
 }

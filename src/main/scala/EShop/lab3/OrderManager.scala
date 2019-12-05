@@ -65,7 +65,7 @@ class OrderManager extends Actor {
   }
 
   def inCheckout(cartActorRef: ActorRef, senderRef: ActorRef): Receive = LoggingReceive {
-    case CheckoutStarted(checkoutRef) =>
+    case CheckoutStarted(checkoutRef, _) =>
       senderRef ! Done
       context become inCheckout(checkoutRef)
   }
