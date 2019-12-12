@@ -33,9 +33,9 @@ class PaymentService(method: String, payment: ActorRef) extends Actor with Actor
     case HttpResponse(status, _, _, _) =>
       import StatusCodes._
       status match {
-        case OK => payment ! PaymentSucceeded
+        case OK                                               => payment ! PaymentSucceeded
         case InternalServerError | RequestTimeout | ImATeapot => throw new PaymentServerError
-        case BadRequest | NotFound => throw new PaymentClientError
+        case BadRequest | NotFound                            => throw new PaymentClientError
       }
     case Status.Failure(exception) =>
       throw exception

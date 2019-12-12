@@ -108,6 +108,7 @@ class CheckoutFSMTest
     expectMsg(cancelledMsg)
   }
 
+  /*
   it should "be in cancelled state after expire checkout timeout in processingPayment state" in {
     val checkoutActor = TestFSMRef[Status, Data, CheckoutFSM](new CheckoutFSM(cartActorStub))
 
@@ -121,6 +122,7 @@ class CheckoutFSMTest
     checkoutActor ! ReceivePayment
     checkoutActor.stateName shouldBe Cancelled
   }
+   */
 
   it should "be in closed state after payment completed" in {
     val checkoutActor = checkoutActorWithResponseOnStateChange(system)(cartActorStub)
