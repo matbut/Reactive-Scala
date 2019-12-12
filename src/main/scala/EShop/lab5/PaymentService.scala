@@ -1,7 +1,10 @@
 package EShop.lab5
 
-import akka.actor.{Actor, ActorLogging, ActorRef, Props}
+import EShop.lab5.PaymentService.{PaymentClientError, PaymentServerError, PaymentSucceeded}
+import akka.actor.{Actor, ActorLogging, ActorRef, Props, Status}
 import akka.http.scaladsl.Http
+import akka.http.scaladsl.model.{HttpRequest, HttpResponse, StatusCodes}
+import akka.pattern.PipeToSupport
 import akka.stream.{ActorMaterializer, ActorMaterializerSettings}
 
 object PaymentService {
@@ -14,16 +17,29 @@ object PaymentService {
 
 }
 
-class PaymentService(method: String, payment: ActorRef) extends Actor with ActorLogging {
+class PaymentService(method: String, payment: ActorRef) extends Actor with ActorLogging with PipeToSupport {
+  import context.dispatcher
 
   final implicit val materializer: ActorMaterializer = ActorMaterializer(ActorMaterializerSettings(context.system))
 
   private val http = Http(context.system)
   private val URI  = getURI
 
-  override def preStart(): Unit = ??? //create http request (use http and uri)
+  override def preStart(): Unit =
+    http.singleRequest(HttpRequest(uri = URI)).pipeTo(self)
+  //create http request (use http and uri)
 
-  override def receive: Receive = ???
+  override def receive: Receive = {
+    case HttpResponse(status, _, _, _) =>
+      import StatusCodes._
+      status match {
+        case OK => payment ! PaymentSucceeded
+        case InternalServerError | RequestTimeout | ImATeapot => throw new PaymentServerError
+        case BadRequest | NotFound => throw new PaymentClientError
+      }
+    case Status.Failure(exception) =>
+      throw exception
+  }
 
   private def getURI: String = method match {
     case "payu"   => "http://127.0.0.1:8080"
